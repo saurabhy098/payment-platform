@@ -3,6 +3,7 @@ package com.example.payment_platform.payment.controller;
 import com.example.payment_platform.payment.domain.Payment;
 import com.example.payment_platform.payment.dto.CreatePaymentRequestDto;
 import com.example.payment_platform.payment.service.PaymentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,7 +19,7 @@ import java.net.URI;
 public class PaymentController {
     private final PaymentService paymentService;
     @PostMapping("/payments")
-    public ResponseEntity<Payment> savePayment(@RequestBody CreatePaymentRequestDto createPaymentRequestDto){
+    public ResponseEntity<Payment> savePayment(@RequestBody @Valid CreatePaymentRequestDto createPaymentRequestDto){
 
         Payment payment = paymentService.createPayment(createPaymentRequestDto);
         URI uri=URI.create("/api/v1/payments/"+payment.getPaymentId());
