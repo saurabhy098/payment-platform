@@ -8,5 +8,4 @@ import java.util.Optional;
 public interface PaymentRepository extends MongoRepository<Payment,String> {
 
     Optional<Payment> findByMerchantReference(String merchantReference);
-
 }

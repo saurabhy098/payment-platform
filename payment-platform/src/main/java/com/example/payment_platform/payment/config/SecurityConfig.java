@@ -23,6 +23,10 @@ public class SecurityConfig {
                 .permitAll()
                 .requestMatchers(HttpMethod.POST,"/api/v1/payments")
                 .permitAll()
+                .requestMatchers(HttpMethod.GET,"/api/v1/payments")
+                .permitAll()
+                .requestMatchers(HttpMethod.GET,"/api/v1/payments/{paymentId}")
+                .permitAll()
                 .anyRequest()
                 .authenticated());
 

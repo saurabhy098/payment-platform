@@ -13,14 +13,24 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(DuplicatePaymentException.class)
-    public ResponseEntity<?> handleException(DuplicatePaymentException e) {
+    @ExceptionHandler({DuplicatePaymentException.class, InvalidPaymentStateException.class})
+    public ResponseEntity<ErrorResponse> handleException(RuntimeException e) {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(ErrorResponse.builder()
                         .status(409)
-                        .error("Duplicate Payment")
-                        .message("Record already exists")
+                        .error(e instanceof DuplicatePaymentException ? "Payment already exists" : "Invalid Payment State")
+                        .message(e.getMessage())
+                        .build());
+    }
+    @ExceptionHandler(NoPaymentFoundException.class)
+    public ResponseEntity<ErrorResponse> handleException(NoPaymentFoundException e) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ErrorResponse.builder()
+                        .status(404)
+                        .error("Payment not found")
+                        .message("Payment not found")
                         .build());
     }
 
