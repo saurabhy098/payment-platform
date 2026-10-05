@@ -18,9 +18,9 @@ import java.util.List;
 public class PaymentController {
     private final PaymentService paymentService;
     @PostMapping("/payments")
-    public ResponseEntity<Payment> savePayment(@RequestBody @Valid CreatePaymentRequestDto createPaymentRequestDto){
+    public ResponseEntity<Payment> savePayment(@RequestHeader("Idempotency-Key") String idemptancyKey,@RequestBody @Valid CreatePaymentRequestDto createPaymentRequestDto){
 
-        Payment payment = paymentService.createPayment(createPaymentRequestDto);
+        Payment payment = paymentService.createPayment(createPaymentRequestDto,idemptancyKey);
         URI uri=URI.create("/api/v1/payments/"+payment.getPaymentId());
         return ResponseEntity.created(uri).body(payment);
 
