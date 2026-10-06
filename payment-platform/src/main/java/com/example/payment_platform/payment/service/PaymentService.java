@@ -4,12 +4,10 @@ package com.example.payment_platform.payment.service;
 import com.example.payment_platform.payment.domain.IdempotancyRecord;
 import com.example.payment_platform.payment.domain.Payment;
 import com.example.payment_platform.payment.dto.CreatePaymentRequestDto;
+import com.example.payment_platform.payment.dto.PaymentCreationResult;
 import com.example.payment_platform.payment.dto.PaymentDto;
 import com.example.payment_platform.payment.enums.PaymentStatus;
-import com.example.payment_platform.payment.exception.DuplicatePaymentException;
-import com.example.payment_platform.payment.exception.IdempotencyKeyReuseException;
-import com.example.payment_platform.payment.exception.InvalidPaymentStateException;
-import com.example.payment_platform.payment.exception.NoPaymentFoundException;
+import com.example.payment_platform.payment.exception.*;
 import com.example.payment_platform.payment.helper.HashingHelper;
 import com.example.payment_platform.payment.mapper.PaymentMapper;
 import com.example.payment_platform.payment.repository.IdempotancyRepository;
@@ -30,18 +28,26 @@ public class PaymentService {
     private final PaymentMapper paymentMapper;
     private final IdempotancyRepository idempotancyRepository;
 
-    public Payment createPayment(CreatePaymentRequestDto paymentRequestDto,String idempotencyKey) {
+    public PaymentCreationResult createPayment(CreatePaymentRequestDto paymentRequestDto, String idempotencyKey) {
+        PaymentCreationResult paymentCreationResult = new PaymentCreationResult();
       Optional<IdempotancyRecord> idempotencyRecord = idempotancyRepository.findById(idempotencyKey);
-      String hashcode =HashingHelper.GenerateRequestedHashcode(paymentRequestDto);
+      String requestHash =HashingHelper.generateRequestedHash(paymentRequestDto);
 
         if(idempotencyRecord.isPresent()){
 
-            if(idempotencyRecord.get().getRequestHash().equals(hashcode)){
+            if(idempotencyRecord.get().getRequestHash().equals(requestHash)){
 
                 String duplicatePayment=  idempotencyRecord.get().getPaymentId();
                 Optional<Payment> paymentExists=paymentRepository.findById(duplicatePayment);
 
-                return paymentExists.get();
+                if(paymentExists.isPresent()) {
+                    paymentCreationResult.setCreated(false);
+                    paymentCreationResult.setPayment(paymentExists.get());
+                    return paymentCreationResult;
+                }
+                else{
+                    throw new IdempotencyRecordInconsistencyException("The idempotency record exists, but the payment referenced by it cannot be found.");
+                }
             }else{
                 throw new IdempotencyKeyReuseException("Idempotency key is being reused");
             }
@@ -53,7 +59,6 @@ public class PaymentService {
         Payment payment=  paymentMapper.map(paymentRequestDto);
         Instant now = Instant.now();
 
-        payment.setStatus(PaymentStatus.CREATED);
         payment.setPaymentId(UUID.randomUUID().toString());
         payment.setUserId("User-11223344");
         payment.setCreatedAt(now);
@@ -66,11 +71,12 @@ public class PaymentService {
         record.setIdempotencyKey(idempotencyKey);
         record.setPaymentId(payment.getPaymentId());
         record.setCreatedDate(Instant.now());
-        record.setRequestHash(hashcode);
+        record.setRequestHash(requestHash);
 
         idempotancyRepository.save(record);
-
-        return payment;
+        paymentCreationResult.setCreated(true);
+        paymentCreationResult.setPayment(payment);
+        return paymentCreationResult;
     }
     public PaymentDto findPayment(String paymentId){
         Optional<Payment> paymentExists=paymentRepository.findById(paymentId);
@@ -91,7 +97,7 @@ public class PaymentService {
             throw new NoPaymentFoundException("Payment not found");
         }
         if(PaymentStatus.CREATED.equals(paymentExists.get().getStatus())){
-            paymentExists.get().setStatus(PaymentStatus.CANCELLED);
+            paymentExists.get().changeStatus(PaymentStatus.CANCELLED);
             paymentExists.get().setUpdatedAt(Instant.now());
             return paymentMapper.map(paymentRepository.save(paymentExists.get()));
         }

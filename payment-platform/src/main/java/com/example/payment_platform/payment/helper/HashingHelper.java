@@ -8,7 +8,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
 public class HashingHelper {
-    public static String GenerateRequestedHashcode(CreatePaymentRequestDto paymentRequestDto){
+    public static String generateRequestedHash(CreatePaymentRequestDto paymentRequestDto){
         String Hash;
         String input=paymentRequestDto.getMerchantReference()+"|"+paymentRequestDto.getAmount().toString()+"|"+paymentRequestDto.getCurrency()+"|"+paymentRequestDto.getPaymentMethod();
         try{

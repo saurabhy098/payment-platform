@@ -1,7 +1,7 @@
 package com.example.payment_platform.payment.controller;
 
-import com.example.payment_platform.payment.domain.Payment;
 import com.example.payment_platform.payment.dto.CreatePaymentRequestDto;
+import com.example.payment_platform.payment.dto.PaymentCreationResult;
 import com.example.payment_platform.payment.dto.PaymentDto;
 import com.example.payment_platform.payment.service.PaymentService;
 import jakarta.validation.Valid;
@@ -18,11 +18,16 @@ import java.util.List;
 public class PaymentController {
     private final PaymentService paymentService;
     @PostMapping("/payments")
-    public ResponseEntity<Payment> savePayment(@RequestHeader("Idempotency-Key") String idemptancyKey,@RequestBody @Valid CreatePaymentRequestDto createPaymentRequestDto){
+    public ResponseEntity<PaymentCreationResult> savePayment(@RequestHeader("Idempotency-Key") String idemptancyKey, @RequestBody @Valid CreatePaymentRequestDto createPaymentRequestDto){
 
-        Payment payment = paymentService.createPayment(createPaymentRequestDto,idemptancyKey);
-        URI uri=URI.create("/api/v1/payments/"+payment.getPaymentId());
-        return ResponseEntity.created(uri).body(payment);
+        PaymentCreationResult payment = paymentService.createPayment(createPaymentRequestDto,idemptancyKey);
+        URI uri=URI.create("/api/v1/payments/"+payment.getPayment().getPaymentId());
+        if(payment.getCreated()) {
+            return ResponseEntity.created(uri).body(payment);
+        }
+        else{
+            return ResponseEntity.ok().body(payment);
+        }
 
     }
 
